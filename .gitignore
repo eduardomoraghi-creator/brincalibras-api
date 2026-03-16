@@ -49,3 +49,8 @@ Thumbs.db
 # Env / secrets
 .env
 application-local.properties
+
+# Runtime / logs
+*.log
+hs_err_pid*
+replay_pid*

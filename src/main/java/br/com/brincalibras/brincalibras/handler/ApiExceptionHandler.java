@@ -2,6 +2,8 @@ package br.com.brincalibras.brincalibras.handler;
 
 import br.com.brincalibras.brincalibras.exception.ConflictException;
 import br.com.brincalibras.brincalibras.exception.NotFoundException;
+import br.com.brincalibras.brincalibras.exception.UnauthorizedException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -33,7 +35,17 @@ public class ApiExceptionHandler {
      */
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<Map<String, Object>> handleConflict(ConflictException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(defaultBody(409, ex.getMessage()));
+        Map<String, Object> body = defaultBody(409, ex.getMessage());
+        Map<String, String> fields = new HashMap<>();
+
+        if ("Email já cadastrado".equals(ex.getMessage())) {
+            fields.put("email", ex.getMessage());
+        } else if ("As senhas não coincidem".equals(ex.getMessage())) {
+            fields.put("confirmaSenha", ex.getMessage());
+        }
+
+        body.put("fields", fields);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     /**
@@ -52,6 +64,12 @@ public class ApiExceptionHandler {
         body.put("fields", fields);
 
         return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(defaultBody(401, ex.getMessage()));
     }
 
     /**

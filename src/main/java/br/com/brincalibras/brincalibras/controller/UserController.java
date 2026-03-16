@@ -1,5 +1,7 @@
 package br.com.brincalibras.brincalibras.controller;
 
+import br.com.brincalibras.brincalibras.dto.LoginRequest;
+import br.com.brincalibras.brincalibras.dto.LoginResponse;
 import br.com.brincalibras.brincalibras.dto.UserCreateRequest;
 import br.com.brincalibras.brincalibras.dto.UserResponse;
 import br.com.brincalibras.brincalibras.dto.UserUpdateRequest;
@@ -15,9 +17,14 @@ import java.util.List;
  * Controller: camada HTTP (endpoints).
  * Aqui a gente define rotas e status code.
  */
+
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {
+        "http://localhost:8081",
+        "http://192.168.15.5:8081"
+})
 public class UserController {
 
     private final UserService userService;
@@ -32,6 +39,12 @@ public class UserController {
     public UserResponse create(@Valid @RequestBody UserCreateRequest req) {
         return userService.create(req);
     }
+
+    @PostMapping("/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest req) {
+        return userService.login(req);
+    }
+    
 
     /**
      * GET /users
@@ -71,4 +84,7 @@ public class UserController {
     public void delete(@PathVariable Long id) {
         userService.delete(id);
     }
+
+    
+
 }

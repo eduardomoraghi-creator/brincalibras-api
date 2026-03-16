@@ -1,10 +1,13 @@
 package br.com.brincalibras.brincalibras.service;
 
+import br.com.brincalibras.brincalibras.dto.LoginRequest;
+import br.com.brincalibras.brincalibras.dto.LoginResponse;
 import br.com.brincalibras.brincalibras.dto.UserCreateRequest;
 import br.com.brincalibras.brincalibras.dto.UserResponse;
 import br.com.brincalibras.brincalibras.dto.UserUpdateRequest;
 import br.com.brincalibras.brincalibras.exception.ConflictException;
 import br.com.brincalibras.brincalibras.exception.NotFoundException;
+import br.com.brincalibras.brincalibras.exception.UnauthorizedException;
 import br.com.brincalibras.brincalibras.model.User;
 import br.com.brincalibras.brincalibras.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,11 @@ public class UserService {
      * CREATE
      */
     public UserResponse create(UserCreateRequest req) {
+        // Regra: senha e confirmação devem ser iguais
+        if (!req.senha().equals(req.confirmaSenha())) {
+            throw new ConflictException("As senhas não coincidem");
+        }
+
         // Regra: email não pode repetir
         if (userRepository.existsByEmail(req.email())) {
             throw new ConflictException("Email já cadastrado");
@@ -36,7 +44,7 @@ public class UserService {
         User user = User.builder()
                 .nome(req.nome())
                 .email(req.email())
-                .senha(passwordEncoder.encode(req.senha())) // hash da senha (nunca salvar senha pura)
+                .senha(passwordEncoder.encode(req.senha())) // hash da senha
                 .role("USER")
                 .build();
 
@@ -107,4 +115,23 @@ public class UserService {
                 user.getRole()
         );
     }
+
+    public LoginResponse login(LoginRequest req) {
+    User user = userRepository.findByEmail(req.email())
+            .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
+
+    boolean senhaCorreta = passwordEncoder.matches(req.senha(), user.getSenha());
+
+    if (!senhaCorreta) {
+        throw new UnauthorizedException("E-mail ou senha inválidos");
+    }
+
+    return new LoginResponse(
+            user.getId(),
+            user.getNome(),
+            user.getEmail(),
+            user.getRole(),
+            "Login realizado com sucesso"
+    );
+}
 }
