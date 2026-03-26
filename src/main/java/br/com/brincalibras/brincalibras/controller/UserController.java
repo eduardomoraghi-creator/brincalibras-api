@@ -20,7 +20,7 @@ import java.util.List;
 
 @CrossOrigin(origins = {
     "http://localhost:8081",
-    "http://192.168.15.33:8081"
+    "https://brincalibras-mobile.onrender.com"
 })
 @RestController
 @RequestMapping("/users")
