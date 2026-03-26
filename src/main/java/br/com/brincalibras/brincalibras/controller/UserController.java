@@ -18,13 +18,15 @@ import java.util.List;
  * Aqui a gente define rotas e status code.
  */
 
+@CrossOrigin(origins = {
+    "http://localhost:8081",
+    "http://192.168.15.33:8081"
+})
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {
-        "http://localhost:8081",
-        "http://192.168.15.5:8081"
-})
+
+
 public class UserController {
 
     private final UserService userService;
