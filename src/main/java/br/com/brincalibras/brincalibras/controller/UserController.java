@@ -6,6 +6,7 @@ import br.com.brincalibras.brincalibras.dto.UserCreateRequest;
 import br.com.brincalibras.brincalibras.dto.UserResponse;
 import br.com.brincalibras.brincalibras.dto.UserUpdateRequest;
 import br.com.brincalibras.brincalibras.service.UserService;
+import br.com.brincalibras.brincalibras.dto.UserPasswordUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -74,6 +75,12 @@ public class UserController {
     public UserResponse update(@PathVariable Long id,
                                @Valid @RequestBody UserUpdateRequest req) {
         return userService.update(id, req);
+    }
+
+    @PutMapping("/{id}/senha")
+    public UserResponse updatePassword(@PathVariable Long id,
+                                    @Valid @RequestBody UserPasswordUpdateRequest req) {
+        return userService.updatePassword(id, req);
     }
 
     /**

@@ -1,20 +1,22 @@
 package br.com.brincalibras.brincalibras.config;
 
+import br.com.brincalibras.brincalibras.security.JwtAuthFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    /**
-     * Bean do PasswordEncoder.
-     * Aqui usamos BCrypt, que é o padrão mais comum e seguro para senhas.
-     */
+    private final JwtAuthFilter jwtAuthFilter;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -25,18 +27,29 @@ public class SecurityConfig {
 
         http
             .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-ui.html",
                         "/health",
-                        "/users/**"
+                        "/users/login",
+                        "/users"
                 ).permitAll()
+
+                .requestMatchers(
+                        "/users/**",
+                        "/unidades/**",
+                        "/licoes/**",
+                        "/progresso/**"
+                ).authenticated()
+
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults())
-            .formLogin(Customizer.withDefaults());
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -10,6 +10,8 @@ import br.com.brincalibras.brincalibras.exception.NotFoundException;
 import br.com.brincalibras.brincalibras.exception.UnauthorizedException;
 import br.com.brincalibras.brincalibras.model.User;
 import br.com.brincalibras.brincalibras.repository.UserRepository;
+import br.com.brincalibras.brincalibras.security.JwtService;
+import br.com.brincalibras.brincalibras.dto.UserPasswordUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,18 +27,17 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // você já tem isso funcionando (hash)
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     /**
      * CREATE
      */
     public UserResponse create(UserCreateRequest req) {
-        // Regra: senha e confirmação devem ser iguais
         if (!req.senha().equals(req.confirmaSenha())) {
             throw new ConflictException("As senhas não coincidem");
         }
 
-        // Regra: email não pode repetir
         if (userRepository.existsByEmail(req.email())) {
             throw new ConflictException("Email já cadastrado");
         }
@@ -44,13 +45,11 @@ public class UserService {
         User user = User.builder()
                 .nome(req.nome())
                 .email(req.email())
-                .senha(passwordEncoder.encode(req.senha())) // hash da senha
+                .senha(passwordEncoder.encode(req.senha()))
                 .role("USER")
                 .build();
 
         User saved = userRepository.save(user);
-
-        // retorna DTO sem senha
         return toResponse(saved);
     }
 
@@ -75,19 +74,32 @@ public class UserService {
     }
 
     /**
-     * UPDATE - por enquanto apenas nome e email
+     * UPDATE
      */
     public UserResponse update(Long id, UserUpdateRequest req) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado (id=" + id + ")"));
 
-        // Se o email novo já existe em OUTRO usuário -> conflito
         if (userRepository.existsByEmailAndIdNot(req.email(), id)) {
             throw new ConflictException("Email já cadastrado por outro usuário");
         }
 
         user.setNome(req.nome());
         user.setEmail(req.email());
+
+        User saved = userRepository.save(user);
+        return toResponse(saved);
+    }
+
+    public UserResponse updatePassword(Long id, UserPasswordUpdateRequest req) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado (id=" + id + ")"));
+
+        if (!req.senha().equals(req.confirmaSenha())) {
+            throw new ConflictException("As senhas não coincidem");
+        }
+
+        user.setSenha(passwordEncoder.encode(req.senha()));
 
         User saved = userRepository.save(user);
         return toResponse(saved);
@@ -104,8 +116,7 @@ public class UserService {
     }
 
     /**
-     * Mapper (conversão Entity -> DTO)
-     * Mantém a API segura e sem dados sensíveis.
+     * Mapper
      */
     private UserResponse toResponse(User user) {
         return new UserResponse(
@@ -116,22 +127,27 @@ public class UserService {
         );
     }
 
+    /**
+     * LOGIN COM JWT
+     */
     public LoginResponse login(LoginRequest req) {
-    User user = userRepository.findByEmail(req.email())
-            .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
+        User user = userRepository.findByEmail(req.email())
+                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
 
-    boolean senhaCorreta = passwordEncoder.matches(req.senha(), user.getSenha());
+        boolean senhaCorreta = passwordEncoder.matches(req.senha(), user.getSenha());
 
-    if (!senhaCorreta) {
-        throw new UnauthorizedException("E-mail ou senha inválidos");
+        if (!senhaCorreta) {
+            throw new UnauthorizedException("E-mail ou senha inválidos");
+        }
+
+        String token = jwtService.gerarToken(user.getEmail(), user.getRole());
+
+        return new LoginResponse(
+                user.getId(),
+                user.getNome(),
+                user.getEmail(),
+                user.getRole(),
+                token
+        );
     }
-
-    return new LoginResponse(
-            user.getId(),
-            user.getNome(),
-            user.getEmail(),
-            user.getRole(),
-            "Login realizado com sucesso"
-    );
-}
 }
