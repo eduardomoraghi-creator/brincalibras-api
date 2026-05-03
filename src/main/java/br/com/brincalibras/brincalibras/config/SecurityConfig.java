@@ -44,7 +44,9 @@ public class SecurityConfig {
                         "/users/**",
                         "/unidades/**",
                         "/licoes/**",
-                        "/progresso/**"
+                        "/progresso/**",
+                        "/top-gamers/**"
+
                 ).authenticated()
 
                 .anyRequest().authenticated()
