@@ -10,7 +10,5 @@ public interface TopGamerRepository extends JpaRepository<TopGamer, Long> {
 
     Optional<TopGamer> findByUserId(Long userId);
 
-    List<TopGamer> findTop10ByPontuacaoTotalGreaterThanOrderByPontuacaoTotalDescMelhorPontuacaoDescTotalPartidasAscIdAsc(
-            Integer pontuacaoTotal
-    );
+    List<TopGamer> findTop10ByOrderByPontuacaoTotalDescMelhorPontuacaoDescTotalPartidasAscIdAsc();
 }

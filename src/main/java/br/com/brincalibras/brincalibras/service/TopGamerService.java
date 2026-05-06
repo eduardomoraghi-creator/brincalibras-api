@@ -47,9 +47,23 @@ public class TopGamerService {
 
         somarPontuacaoDoJogo(topGamer, jogoNormalizado, pontos);
 
-        topGamer.setPontuacaoTotal(valorOuZero(topGamer.getPontuacaoTotal()) + pontos);
-        topGamer.setMelhorPontuacao(Math.max(valorOuZero(topGamer.getMelhorPontuacao()), pontos));
-        topGamer.setTotalPartidas(valorOuZero(topGamer.getTotalPartidas()) + 1);
+        int novaPontuacaoTotal = valorOuZero(topGamer.getPontuacaoTotal()) + pontos;
+
+        topGamer.setPontuacaoTotal(novaPontuacaoTotal);
+        topGamer.setMelhorPontuacao(
+                Math.max(valorOuZero(topGamer.getMelhorPontuacao()), novaPontuacaoTotal)
+        );
+
+        /*
+         * IMPORTANTE:
+         * Não incrementamos totalPartidas aqui porque este endpoint agora é usado
+         * para atualizar pontuação em tempo real a cada clique/letra.
+         *
+         * Se incrementar aqui, cada acerto, erro ou dica será contado como uma partida.
+         * O ideal é criar outro endpoint futuramente apenas para "finalizar partida",
+         * caso você queira contar partidas jogadas.
+         */
+
         topGamer.setUltimoJogo(jogoNormalizado);
         topGamer.setAtualizadoEm(LocalDateTime.now());
 
@@ -62,7 +76,7 @@ public class TopGamerService {
     public List<TopGamerRankingResponse> rankingTop10() {
         List<TopGamer> top10 =
                 topGamerRepository
-                        .findTop10ByPontuacaoTotalGreaterThanOrderByPontuacaoTotalDescMelhorPontuacaoDescTotalPartidasAscIdAsc(0);
+                        .findTop10ByOrderByPontuacaoTotalDescMelhorPontuacaoDescTotalPartidasAscIdAsc();
 
         return IntStream.range(0, top10.size())
                 .mapToObj(index -> toRankingResponse(top10.get(index), index + 1))
