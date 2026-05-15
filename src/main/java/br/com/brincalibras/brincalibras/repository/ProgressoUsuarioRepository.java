@@ -8,6 +8,10 @@ import java.util.Optional;
 
 public interface ProgressoUsuarioRepository extends JpaRepository<ProgressoUsuario, Long> {
     List<ProgressoUsuario> findByUserId(Long userId);
+
     Optional<ProgressoUsuario> findByUserIdAndLicaoId(Long userId, Long licaoId);
+
     List<ProgressoUsuario> findByUserIdIn(List<Long> userIds);
+
+    void deleteByUserId(Long userId);
 }

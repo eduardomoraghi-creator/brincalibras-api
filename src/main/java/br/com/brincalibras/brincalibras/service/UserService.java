@@ -15,6 +15,9 @@ import br.com.brincalibras.brincalibras.dto.UserPasswordUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import br.com.brincalibras.brincalibras.repository.ProgressoUsuarioRepository;
+import br.com.brincalibras.brincalibras.repository.TopGamerRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,6 +32,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ProgressoUsuarioRepository progressoUsuarioRepository;
+    private final TopGamerRepository topGamerRepository;
 
     /**
      * CREATE
@@ -108,10 +113,15 @@ public class UserService {
     /**
      * DELETE
      */
+    @Transactional
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
             throw new NotFoundException("Usuário não encontrado (id=" + id + ")");
         }
+
+        progressoUsuarioRepository.deleteByUserId(id);
+        topGamerRepository.deleteByUserId(id);
+
         userRepository.deleteById(id);
     }
 
