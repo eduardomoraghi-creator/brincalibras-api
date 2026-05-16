@@ -19,6 +19,14 @@ import br.com.brincalibras.brincalibras.repository.ProgressoUsuarioRepository;
 import br.com.brincalibras.brincalibras.repository.TopGamerRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.brincalibras.brincalibras.dto.ForgotPasswordRequest;
+import br.com.brincalibras.brincalibras.dto.ResetPasswordRequest;
+import br.com.brincalibras.brincalibras.model.PasswordResetCode;
+import br.com.brincalibras.brincalibras.repository.PasswordResetCodeRepository;
+
+import java.time.LocalDateTime;
+import java.util.Random;
+
 import java.util.List;
 
 /**
@@ -34,6 +42,8 @@ public class UserService {
     private final JwtService jwtService;
     private final ProgressoUsuarioRepository progressoUsuarioRepository;
     private final TopGamerRepository topGamerRepository;
+    private final PasswordResetCodeRepository passwordResetCodeRepository;
+    private final EmailService emailService;
 
     /**
      * CREATE
@@ -119,10 +129,56 @@ public class UserService {
             throw new NotFoundException("Usuário não encontrado (id=" + id + ")");
         }
 
+        passwordResetCodeRepository.deleteByUserId(id);
         progressoUsuarioRepository.deleteByUserId(id);
         topGamerRepository.deleteByUserId(id);
 
         userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest req) {
+        User user = userRepository.findByEmail(req.email())
+                .orElseThrow(() -> new NotFoundException("E-mail não encontrado"));
+
+        String codigo = String.format("%06d", new Random().nextInt(999999));
+
+        PasswordResetCode resetCode = PasswordResetCode.builder()
+                .codigo(codigo)
+                .expiracao(LocalDateTime.now().plusMinutes(15))
+                .utilizado(false)
+                .user(user)
+                .build();
+
+        passwordResetCodeRepository.save(resetCode);
+
+        emailService.enviarCodigoRecuperacao(user.getEmail(), codigo);
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest req) {
+        if (!req.novaSenha().equals(req.confirmaSenha())) {
+            throw new ConflictException("As senhas não coincidem");
+        }
+
+        PasswordResetCode resetCode = passwordResetCodeRepository
+                .findTopByUserEmailAndCodigoAndUtilizadoFalseOrderByIdDesc(
+                        req.email(),
+                        req.codigo()
+                )
+                .orElseThrow(() -> new UnauthorizedException("Código inválido"));
+
+        if (resetCode.getExpiracao().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException("Código expirado");
+        }
+
+        User user = resetCode.getUser();
+
+        user.setSenha(passwordEncoder.encode(req.novaSenha()));
+        userRepository.save(user);
+
+        resetCode.setUtilizado(true);
+        passwordResetCodeRepository.save(resetCode);
     }
 
     /**

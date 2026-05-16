@@ -37,7 +37,9 @@ public class SecurityConfig {
                         "/swagger-ui.html",
                         "/health",
                         "/users/login",
-                        "/users"
+                        "/users",
+                        "/users/forgot-password",
+                        "/users/reset-password"
                 ).permitAll()
 
                 .requestMatchers(
