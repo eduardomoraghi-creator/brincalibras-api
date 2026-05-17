@@ -11,6 +11,7 @@ public record TopGamerUsuarioResponse(
         Integer pares,
         Integer soletrando,
         Integer montarSinalLibras,
+        Integer sinalRush,
         String ultimoJogo,
         String atualizadoEm
 ) {}
