@@ -19,4 +19,6 @@ public interface TopGamerRepository extends JpaRepository<TopGamer, Long> {
     Optional<TopGamer> findByUserIdForUpdate(@Param("userId") Long userId);
 
     List<TopGamer> findTop10ByOrderByPontuacaoTotalDescMelhorPontuacaoDescTotalPartidasAscIdAsc();
+
+    void deleteByUserId(Long userId);
 }
