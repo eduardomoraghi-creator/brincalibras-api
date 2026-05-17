@@ -55,7 +55,7 @@ public class TopGamer {
     @Builder.Default
     private Integer montarSinalLibras = 0;
 
-    @Column(name = "sinal_rush", nullable = false, columnDefinition = "integer default 0")
+    @Column(name = "sinal_rush", nullable = false)
     @Builder.Default
     private Integer sinalRush = 0;
 

@@ -39,10 +39,17 @@ public class TopGamerService {
             Long userId,
             TopGamerPontuacaoRequest req
     ) {
+        if (req == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Dados da pontuação são obrigatórios"
+            );
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado (id=" + userId + ")"));
 
-        TopGamer topGamer = topGamerRepository.findByUserIdForUpdate(userId)
+        TopGamer topGamer = topGamerRepository.findByUserId(userId)
                 .orElseGet(() -> criarTopGamerZerado(user));
 
         corrigirCamposNulos(topGamer);
@@ -52,7 +59,7 @@ public class TopGamerService {
 
         somarPontuacaoDoJogo(topGamer, jogoNormalizado, pontos);
 
-        int novaPontuacaoTotal = somar(topGamer.getPontuacaoTotal(), pontos);
+        int novaPontuacaoTotal = valorOuZero(topGamer.getPontuacaoTotal()) + pontos;
 
         topGamer.setPontuacaoTotal(novaPontuacaoTotal);
         topGamer.setMelhorPontuacao(
@@ -60,8 +67,8 @@ public class TopGamerService {
         );
 
         /*
-         * Não incrementamos totalPartidas aqui porque este endpoint é usado
-         * para atualizar pontuação em tempo real a cada acerto, erro ou tempo esgotado.
+         * Este endpoint registra variações de pontuação em tempo real.
+         * Por isso, não incrementa totalPartidas a cada acerto/erro.
          */
 
         topGamer.setUltimoJogo(jogoNormalizado);
@@ -156,22 +163,24 @@ public class TopGamerService {
     ) {
         switch (jogo) {
             case JOGO_FORCA ->
-                    topGamer.setForca(somar(topGamer.getForca(), pontos));
+                    topGamer.setForca(valorOuZero(topGamer.getForca()) + pontos);
 
             case JOGO_MEMORIA ->
-                    topGamer.setMemoria(somar(topGamer.getMemoria(), pontos));
+                    topGamer.setMemoria(valorOuZero(topGamer.getMemoria()) + pontos);
 
             case JOGO_PARES ->
-                    topGamer.setPares(somar(topGamer.getPares(), pontos));
+                    topGamer.setPares(valorOuZero(topGamer.getPares()) + pontos);
 
             case JOGO_SOLETRANDO ->
-                    topGamer.setSoletrando(somar(topGamer.getSoletrando(), pontos));
+                    topGamer.setSoletrando(valorOuZero(topGamer.getSoletrando()) + pontos);
 
             case JOGO_MONTAR_SINAL_LIBRAS ->
-                    topGamer.setMontarSinalLibras(somar(topGamer.getMontarSinalLibras(), pontos));
+                    topGamer.setMontarSinalLibras(
+                            valorOuZero(topGamer.getMontarSinalLibras()) + pontos
+                    );
 
             case JOGO_SINAL_RUSH ->
-                    topGamer.setSinalRush(somar(topGamer.getSinalRush(), pontos));
+                    topGamer.setSinalRush(valorOuZero(topGamer.getSinalRush()) + pontos);
 
             default -> throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -201,22 +210,44 @@ public class TopGamerService {
         return switch (normalizado) {
             case "forca" -> JOGO_FORCA;
 
-            case "memoria", "memoria_libras" -> JOGO_MEMORIA;
+            case "memoria",
+                 "memoria_libras",
+                 "jogo_memoria" -> JOGO_MEMORIA;
 
-            case "pares", "pares_drag_and_drop", "pares_draganddrop" -> JOGO_PARES;
+            case "pares",
+                 "par",
+                 "pares_drag_and_drop",
+                 "pares_draganddrop",
+                 "jogo_pares" -> JOGO_PARES;
 
-            case "soletrando" -> JOGO_SOLETRANDO;
+            case "soletrando",
+                 "jogo_soletrando" -> JOGO_SOLETRANDO;
 
-            case "montar_sinal_libras", "montar_libras", "montarsinallibras" ->
-                    JOGO_MONTAR_SINAL_LIBRAS;
+            case "montar_sinal_libras",
+                 "montar_libras",
+                 "montarsinallibras",
+                 "montar_sinal",
+                 "jogo_montar_sinal_libras" -> JOGO_MONTAR_SINAL_LIBRAS;
 
-            case "sinal_rush", "sinalrush", "rush", "rush_sinais", "corrida_sinais" ->
-                    JOGO_SINAL_RUSH;
+            case "sinal_rush",
+                 "sinalrush",
+                 "rush",
+                 "sinal_rush_game",
+                 "jogo_sinal_rush",
+                 "rush_sinais",
+                 "corrida_sinais",
+                 "sinal_rush_libras" -> JOGO_SINAL_RUSH;
 
-            default -> throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Jogo inválido: " + jogo
-            );
+            default -> {
+                if (normalizado.contains("rush")) {
+                    yield JOGO_SINAL_RUSH;
+                }
+
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Jogo inválido: " + jogo
+                );
+            }
         };
     }
 
@@ -257,10 +288,6 @@ public class TopGamerService {
                         ? topGamer.getAtualizadoEm().toString()
                         : null
         );
-    }
-
-    private int somar(Integer valorAtual, int pontos) {
-        return valorOuZero(valorAtual) + pontos;
     }
 
     private int valorOuZero(Integer valor) {
